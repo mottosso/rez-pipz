@@ -1,4 +1,4 @@
-<img width=500 src=https://user-images.githubusercontent.com/2152766/59205156-2eecb500-8b9a-11e9-8ad9-2ef1e167b7b8.png>
+![image](https://user-images.githubusercontent.com/2152766/59871191-d8982700-938e-11e9-88fe-33249483480d.png)
 
 Install anything from [PyPI](https://pypi.org/) as a Rez package.
 
@@ -16,7 +16,7 @@ Install anything from [PyPI](https://pypi.org/) as a Rez package.
 - [x] **Dependencies included** Python libraries may reference other libraries, which reference additional libraries and so forth. Pipz handles all of that, whilst keeping track of which dependencies you already have in your package repository.
 - [x] **Minimal variants** Only make variants for packages that need it, e.g. universal libraries have zero variants, whereas compiled binaries require `arch`, `os` and `platform`. This applies to individual packages regardless of whether they are indirect requirements to a requested package.
 - [x] **Zero-compilation** Every package is installed as a [wheel](https://pythonwheels.com/), which is how package authors distributes pre-compiled resources straight to your system.
-- [ ] **Pip Scripts to Rez Executables** Some libraries ship with "scripts" or "entry_points" that provide a short-hand for an embedded Python function, such as `pip.exe`. These are typically refer to their parent Python process via absolute path which is a problem if you wanted to provide a different Python package alongside it using Rez. To work around this, Pipz makes this reference relative rather than absolute, such that you can say `rez env pip python-3.7` and use the provided Python with `pip` rather than whichever executable `pip.exe` happened to be built with.
+- [ ] [**Pip Scripts to Rez Executables**](https://github.com/mottosso/rez-pipz/issues/4) Some libraries ship with "scripts" or "entry_points" that provide a short-hand for an embedded Python function, such as `pip.exe`. These are typically refer to their parent Python process via absolute path which is a problem if you wanted to provide a different Python package alongside it using Rez. To work around this, Pipz makes this reference relative rather than absolute, such that you can say `rez env pip python-3.7` and use the provided Python with `pip` rather than whichever executable `pip.exe` happened to be built with.
 
 > An avid user of `rez pip`? See [FAQ](#faq)
 
@@ -36,24 +36,36 @@ $ rez build --install
 
 ### Usage
 
-![pipz](https://user-images.githubusercontent.com/2152766/59216542-bbf03800-8bb3-11e9-85a0-421df2b85f37.gif)
-
 `pipz` is used like any other Rez package, and comes with a handy `install` executable for convenient access.
 
 ```bash
-$ rez env pipz -- install python
-$ rez env python -- python --version
-Python 3.7.3
+$ rez env pipz -- install bleeding-rez
+$ rez env python-3.7 bleeding_rez
+> $ python -m rez --version
+2.31.0
 ```
 
 Which is the equivalent of calling..
 
 ```bash
 $ rez env pipz
-> $ install python
+> $ install bleeding-rez
 ```
 
-And, for the advanced user, it may also be used as a Python package. Note that it requires Rez itself to be present as a package, along with a copy of Python that isn't coming from Rez.
+Per default, `pipz` will install using the latest version of any available `python` package, such as `3.7`. To install using a specific version, include this version in the request.
+
+```bash
+$ rez env python-2.7 pipz -- install six
+# Installing `six` using Python 2.7
+```
+
+For the advanced user, `pipz` may also be used as a Python package. Note that it requires Rez itself to be present as a package, along with a copy of Python that isn't coming from Rez.
+
+```bash
+$ rez env pipz -- python
+>>> import pipz
+>>> pipz.install("six")
+```
 
 > Try before I buy?
 
@@ -114,6 +126,37 @@ optional arguments:
   -q, --quiet    Do not print anything to the console
 ```
 
+> Search?
+
+The original `pip` is included in the package, so you can either use it explicitly.
+
+```bash
+$ rez env pipz -- python -m pip search six
+```
+
+Or use the wrapper which does the same thing.
+
+```bash
+rez env pipz -- search six
+django-six (1.0.4)          - Django-six &#8212;&#8212; Django Compatibility Library
+six (1.12.0)                - Python 2 and 3 compatibility utilities
+six-web (1.0.1)             - Micro python web framework
+plivo-six (0.11.5)          - Plivo Python library
+py-dom-xpath-six (0.2.3)    - XPath for DOM trees
+dots-editor (0.3.7)         - A six-key brailler emulator written in python.
+pymosa (0.0.1)              - Readout of up to six Mimosa26 silicon detector planes.
+py3compat (0.4)             - Small Python2/3 helpers to avoid depending on six.
+affine6p-cstest (0.8.1)     - To calculate affine transformation parameters with six free parameters.
+sixgill (0.2.4)             - six-frame genome-inferred libraries for LC-MS/MS
+bvcopula (0.9.1)            - Probability and sampling functions for six common seen bivariate copulas
+nine (1.0.0)                - Python 2 / 3 compatibility, like six, but favouring Python 3
+plonetheme.solemnity (0.7)  - An installable theme for Plone 3.0 based on the solemnity theme by Six Shooter Media.
+sixer (1.6.1)               - Add Python 3 support to Python 2 applications using the six module.
+Sublimescheme (1.0.7)       - Easily create a Sublime text Color Scheme with as little as six lines of code
+momentx (0.2.3)             - A lightweight wrapper around datetime with a focus on timezone handling and few dependencies (datetime, pytz and six).
+git-clog (0.2.3)            - git-clog outputs the commit graph of the current Git repository and colorizes commit symbols by interpreting the first six commit hash digits as an RGB color value.
+```
+
 <br>
 
 ### FAQ
@@ -145,7 +188,7 @@ $ rez env pipz -- install six
      |                        |
 .----o-------- pipz ----------o----.
 |    |                        |    |
-| .--v-------- Scoop ---------o--. |
+| .--v-------- pip -----------o--. |
 | |                              | |
 | |                              | |
 | |                              | |
