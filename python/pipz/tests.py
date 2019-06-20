@@ -117,7 +117,7 @@ Tag: cp36-cp36m-win_amd64
         self.assertEqual(variants, [
             "platform-%s" % pip.platform_name(),
             "os-%s" % pip.os_name(),
-            "python-3.6",
+            "python-%s" % pip.python_version(),
         ])
 
     def test_wheel_to_variants3(self):
