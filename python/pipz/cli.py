@@ -10,11 +10,12 @@ import contextlib
 from . import pip
 from rez.config import config
 
-quiet = False
+log = logging.getLogger("pipz")
+log.setLevel(logging.INFO)
 
 
 def tell(msg, newlines=1):
-    if quiet:
+    if log.level == logging.CRITICAL:
         return
 
     import sys
@@ -43,15 +44,20 @@ def ask(msg):
 
 @contextlib.contextmanager
 def stage(msg, timing=True):
-    tell(msg, 0)
+    verbose = log.level < logging.INFO
+    tell(msg, 1 if verbose else 0)
     t0 = time.time()
 
     try:
         yield
     except Exception:
-        tell("fail")
+        if not verbose:
+            tell("fail")
         raise
     else:
+        if verbose:
+            return
+
         if timing:
             tell("ok - %.2fs" % (time.time() - t0))
         else:
@@ -195,6 +201,7 @@ def _search(opts):
 
 def main(argv=sys.argv):
     # Mute unnecessary messages
+    logging.basicConfig(format="%(levelname)s %(message)s")
     logging.getLogger("rez.vendor.distlib").setLevel(logging.CRITICAL)
 
     parser = argparse.ArgumentParser(description="pip for Rez")
@@ -221,14 +228,17 @@ def main(argv=sys.argv):
         "-q", "--quiet", action="store_true",
         help="Do not output anything to stdout")
     parser.add_argument(
-        "-v", "--verbose", action="count",
+        "-v", "--verbose", action="store_true",
         help="Print more information to the screen")
 
     opts, unknown = parser.parse_known_args(argv)
     extra_args = unknown[1:]  # First argument is a full path
 
-    global quiet
-    quiet = (opts.verbose < 2) and opts.quiet
+    if opts.verbose:
+        log.setLevel(logging.DEBUG)
+
+    if opts.quiet:
+        log.setLevel(logging.CRITICAL)
 
     if opts.search:
         return _search(opts)

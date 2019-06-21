@@ -21,9 +21,11 @@ from rez.utils.filesystem import retain_cwd
 from rez.backport.lru_cache import lru_cache
 
 import os
+import sys
 import errno
 import shutil
 import tempfile
+import logging
 import subprocess
 
 # Public API
@@ -36,6 +38,7 @@ __all__ = [
 
 _basestring = six.string_types[0]
 _files = {}
+_log = logging.getLogger("pipz")
 
 
 def install(names,
@@ -147,37 +150,7 @@ def download(names, tempdir=None, extra_args=None):
 
     cmd += names
 
-    popen = subprocess.Popen(cmd,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT,
-                             universal_newlines=True,
-                             shell=True)
-
-    output = []
-    for line in iter(popen.stdout.readline, ""):
-
-        if line.startswith("DEPRECATION"):
-            # Mute warnings about Python 2 being deprecated.
-            # It's out-of-band for the casual Rez user.
-            continue
-
-        output.append(line.rstrip())
-
-    popen.wait()
-
-    if popen.returncode != 0:
-        raise OSError(
-            # arg1, arg2 -------
-            # Some error here
-            # ------------------
-            "\n".join([
-                ("Arguments: %s " % " ".join(cmd)).ljust(70, "-"),
-                "",
-                "\n".join(output),
-                "",
-                "-" * 70,
-            ])
-        )
+    call(cmd)
 
     distribution_path = DistributionPath([tempdir])
     distributions = list(distribution_path.get_distributions())
@@ -377,7 +350,6 @@ def wheel_to_variants(wheel):
     if py["minor"]:
         # Use the actual version from the running Python
         # rather than what's coming out of the the WHEEL
-        # See 
         variants["python"] = python_version()
 
     elif py["2"] and py["3"]:
@@ -478,6 +450,50 @@ def pip_version():
     if popen.wait() == 0:
         version = popen.stdout.read().rstrip()
         return version
+
+
+def call(command, **kwargs):
+    # Use logging level to determine verbosity
+    verbose = _log.level < logging.INFO
+
+    popen = subprocess.Popen(
+        command,
+        shell=True,
+        universal_newlines=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        **kwargs
+    )
+
+    output = list()
+    for line in iter(popen.stdout.readline, ""):
+
+        if line.startswith("DEPRECATION"):
+            # Mute warnings about Python 2 being deprecated.
+            # It's out-of-band for the casual Rez user.
+            continue
+
+        output += [line.rstrip()]
+
+        if verbose:
+            sys.stdout.write("# " + line)
+
+    popen.wait()
+
+    if popen.returncode != 0:
+        command = command if isinstance(command, (list, tuple)) else [command]
+        raise OSError(
+            # arg1 arg2 -------
+            # Some error here
+            # ------------------
+            "\n".join([
+                ("%s " % " ".join(command)).ljust(70, "-"),
+                "",
+                "\n".join(output),
+                "",
+                "-" * 70,
+            ])
+        )
 
 
 def _rez_name(pip_name):
