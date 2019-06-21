@@ -12,7 +12,7 @@ from rez.vendor.distlib import DistlibException
 from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
-from rez.utils.logging_ import print_debug, print_warning
+from rez.utils.logging_ import print_warning
 from rez.package_maker__ import PackageMaker
 from rez.config import config
 from rez.vendor.six import six
@@ -23,7 +23,6 @@ from rez.backport.lru_cache import lru_cache
 import os
 import errno
 import shutil
-import logging
 import tempfile
 import subprocess
 
