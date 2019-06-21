@@ -33,7 +33,8 @@ def ask(msg):
         _input = input
 
     try:
-        return _input(msg).lower() in ("", "y", "yes", "ok")
+        reply = _input(msg).lower().rstrip()
+        return reply in ("", "y", "yes", "ok")
     except EOFError:
         return True  # On just hitting enter
     except KeyboardInterrupt:
@@ -150,6 +151,7 @@ def _install(opts, extra_args, tempdir):
 
     if not opts.yes and not opts.quiet:
         if not ask("Do you want to continue? [Y/n] "):
+            print("Cancelled")
             return
 
     for index, package in enumerate(new):
@@ -217,9 +219,9 @@ def main(argv=sys.argv):
         help="Pre-emptively answer the question to continue")
     parser.add_argument(
         "-q", "--quiet", action="store_true",
-        help="Do not output anything to stdout, overridden with -vvv")
+        help="Do not output anything to stdout")
     parser.add_argument(
-        "-v", "--verbose", action="store_true",
+        "-v", "--verbose", action="count",
         help="Print more information to the screen")
 
     opts, unknown = parser.parse_known_args(argv)
@@ -229,7 +231,7 @@ def main(argv=sys.argv):
     quiet = (opts.verbose < 2) and opts.quiet
 
     if opts.search:
-        _search(opts)
+        return _search(opts)
 
     success = True
 
