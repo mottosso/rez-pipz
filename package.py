@@ -1,5 +1,5 @@
 name = "pipz"
-version = "1.0.3"
+version = "1.0.4"
 requires = ["python>=2,<4"]
 
 tools = [
@@ -7,6 +7,7 @@ tools = [
     "search",
 ]
 
+# Upon a new release of pip, wheel or setuptools, this is what you edit
 build_command = " ".join([
     "python {root}/install.py ",
     "--pip=19.1.1",
