@@ -1,6 +1,6 @@
 name = "pipz"
-version = "1.0.5"
-requires = ["python>=2,<4"]
+version = "1.0.6"
+requires = ["rez-2.29+", "python>=2,<4"]
 
 tools = [
     "install",

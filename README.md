@@ -24,6 +24,11 @@ Install anything from [PyPI](https://pypi.org/) as a Rez package.
 
 ### Installation
 
+**Prerequisites**
+
+- `python-2.7,<4`
+- `rez-2.29+`
+
 This repository is a Rez package, here's how you can install it.
 
 ```bash
