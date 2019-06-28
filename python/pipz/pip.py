@@ -22,11 +22,25 @@ from rez.backport.lru_cache import lru_cache
 
 import os
 import sys
+import stat
 import errno
 import shutil
-import tempfile
 import logging
+import tempfile
+import traceback
 import subprocess
+
+try:
+    from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import ConfigParser
+
+
+# As per https://packaging.python.org/
+#        specifications/entry-points/#file-format
+class CaseSensitiveConfigParser(ConfigParser):
+    optionxform = staticmethod(str)
+
 
 # Public API
 __all__ = [
@@ -37,8 +51,12 @@ __all__ = [
 ]
 
 _basestring = six.string_types[0]
-_files = {}
+_package_to_distribution = {}
 _log = logging.getLogger("pipz")
+_pipzdir = os.path.dirname(__file__)
+_pythondir = os.path.dirname(_pipzdir)
+_rootdir = os.path.dirname(_pythondir)
+_shim = os.path.join(_rootdir, "bin", "shim.exe")
 
 
 def install(names,
@@ -217,22 +235,19 @@ def convert(distribution, variants=None):
         maker.variants = [variants_]
 
     maker.commands = '\n'.join([
-        "env.PYTHONPATH.append('{root}/python')"
+        "env.PATH.prepend('{root}/bin')",
+        "env.PYTHONPATH.prepend('{root}/python')"
     ])
 
-    # Store files from distribution for deployment
-    files = list()
-    for relpath, md5, size in distribution.list_installed_files():
-        root = os.path.dirname(distribution.path)
-        files += [(root, relpath)]
-
-    _files[name] = files
-
     package = maker.get_package()
+
+    # Store reference for deployment
+    _package_to_distribution[package] = distribution
+
     return package
 
 
-def deploy(package, path):
+def deploy(package, path, shim="binary"):
     """Deploy `distribution` as `package` at `path`
 
     Arguments:
@@ -242,7 +257,15 @@ def deploy(package, path):
     """
 
     def make_root(variant, destination_root):
-        for source_root, relpath in _files.pop(package.name):
+        distribution = _package_to_distribution[package]
+
+        # Store files from distribution for deployment
+        files = list()
+        for relpath, md5, size in distribution.list_installed_files():
+            root_ = os.path.dirname(distribution.path)
+            files += [(root_, relpath)]
+
+        for source_root, relpath in files:
             src = os.path.join(source_root, relpath)
             src = os.path.normpath(src)
 
@@ -256,6 +279,20 @@ def deploy(package, path):
                 os.makedirs(os.path.dirname(dst))
 
             shutil.copyfile(src, dst)
+
+        console_scripts = find_console_scripts(distribution)
+
+        if not console_scripts:
+            return
+
+        dst = os.path.join(root, "bin")
+        dst = os.path.normpath(dst)
+
+        if not os.path.exists(dst):
+            os.makedirs(dst)
+
+        for exe, command in console_scripts.items():
+            write_console_script(dst, exe, command, shim == "binary")
 
     variant = next(package.iter_variants())
     variant_ = variant.install(path)
@@ -276,6 +313,112 @@ def deploy(package, path):
         make_root(variant_, root)
 
     return variant_
+
+
+def find_console_scripts(distribution):
+    """Find entry points from `distribution`
+
+    Every distribution with an entry_point section contains
+    a `entry_points.txt` file in ConfigParser format.
+
+    """
+
+    # Specification of this file:
+    #     https://packaging.python.org/specifications/
+    #     entry-points/#file-format
+    fname = os.path.join(
+        distribution.path,
+        "entry_points.txt"
+    )
+
+    try:
+        parser = CaseSensitiveConfigParser()
+        parser.read(fname)
+
+    # There may not be any entry points
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+    scripts = parser._sections.get("console_scripts", {})
+
+    # Generic default on Linux
+    scripts.pop("__name__", None)
+
+    return scripts
+
+
+bat = """\
+@echo off
+python -u -c "import {module} as m;m.{func}()"
+"""
+
+shim = """\
+path = python
+args = -u -c "import {module} as m;m.{func}()"
+"""
+
+sh = """\
+#!/usr/bin/env python
+import {module} as mod
+mod.{func}()
+"""
+
+
+def write_console_script(root, executable, command, binary=True):
+    """Write `executable` file for `command` at `root`
+
+    On Windows, shims use a similar mechanism as the Scoop
+    package manager; a binary executable written in C that
+    accompanied by a .shim file containing name of command
+    and arguments. The executable forwards signals such as
+    CTRL+C and respects the process hierarchy, killing
+    children alongside itself.
+
+    On Linux and MacOS the console scripts are written as
+    executable shell scripts, with a #!/use/bin/env bash
+
+    Arguments:
+        root (str): Absolute path to where to write executable files
+        executable (str): Name of executable file, without suffix,
+            e.g. rez or pyblish
+        command (str): Module and function pair, e.g. "module:func",
+            with no arguments. Same syntax as setup(console_scripts=)
+        binary (bool, optional): Windows-only, whether to write a
+            .bat script or a binary .exe file
+
+    Example:
+        >> write_console_script("~/", "listdir", "os:listdir")
+
+    """
+
+    fname = os.path.join(root, executable)
+
+    try:
+        module, func = command.split(":")
+    except ValueError as e:
+
+        if _log.level < logging.INFO:
+            traceback.print_exc()
+
+        return sys.stderr.write("Could not write %s\n" % fname)
+
+    if os.name == "nt":
+        if binary:
+            shutil.copyfile(_shim, fname + ".exe")
+            with open(fname + ".shim", "w") as f:
+                f.write(shim.format(**locals()))
+
+        else:
+            with open(fname + ".bat", "w") as f:
+                f.write(bat.format(**locals()))
+
+    else:
+        with open(fname, "w") as f:
+            f.write(sh.format(**locals()))
+
+        st = os.stat(fname)
+        os.chmod(fname, st.st_mode | stat.S_IEXEC)
 
 
 def wheel_to_variants(wheel):
@@ -377,7 +520,14 @@ def os_name():
     """Return pip-compatible OS, e.g. windows-10.0 and Debian-7.6"""
     # pip packages are no more specific than minor/major of an os
     # E.g. windows-10.0.18362 -> windows-10.0
-    return ".".join(platform_.os.split(".")[:2])
+    try:
+        return ".".join(platform_.os.split(".")[:2])
+
+    except TypeError:
+        # A platform_map may have been used to reduce
+        # the number of available components, or the
+        # OS simply doesn't provide enough, e.g. centos-7
+        return platform_.os
 
 
 def platform_name():
@@ -455,6 +605,9 @@ def pip_version():
 def call(command, **kwargs):
     # Use logging level to determine verbosity
     verbose = _log.level < logging.INFO
+
+    if isinstance(command, (tuple, list)):
+        command = " ".join(command)
 
     popen = subprocess.Popen(
         command,

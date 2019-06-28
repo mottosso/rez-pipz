@@ -206,7 +206,7 @@ def main(argv=sys.argv):
 
     parser = argparse.ArgumentParser(description="pip for Rez")
     parser.add_argument(
-        "-i", "--install", nargs="+",
+        "install", nargs="+",
         help="Install the package")
     parser.add_argument(
         "-s", "--search", nargs="+",
@@ -230,8 +230,14 @@ def main(argv=sys.argv):
     parser.add_argument(
         "-v", "--verbose", action="store_true",
         help="Print more information to the screen")
+    parser.add_argument(
+        "--debug", action="store_true",
+        help="Do not clean up temporary files")
+    parser.add_argument(
+        "--shim", default="binary", choices=["binary", "bat"],
+        help="Windows-only, whether to generate binary or bat console_scripts")
 
-    opts, unknown = parser.parse_known_args(argv)
+    opts, unknown = parser.parse_known_args(argv[1:])
     extra_args = unknown[1:]  # First argument is a full path
 
     if opts.verbose:
@@ -242,6 +248,9 @@ def main(argv=sys.argv):
 
     if opts.search:
         return _search(opts)
+
+    if opts.debug:
+        tell("Debug mode enabled, preserving temporary files")
 
     success = True
 
@@ -256,7 +265,10 @@ def main(argv=sys.argv):
             success = True
 
         finally:
-            shutil.rmtree(tmpdir)
+            if opts.debug:
+                tell("Temporary files @ %s" % tmpdir)
+            else:
+                shutil.rmtree(tmpdir)
 
         tell(
             ("Completed in %.2fs" % (time.time() - t0))

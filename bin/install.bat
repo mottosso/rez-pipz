@@ -1,2 +1,2 @@
 @echo off
-call python -u -m pipz --install %*
+call python -u -m pipz %*
