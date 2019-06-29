@@ -10,6 +10,8 @@ Install anything from [PyPI](https://pypi.org/) as a Rez package.
 
 ### Features
 
+![pipzdemo](https://user-images.githubusercontent.com/2152766/60382932-5086e100-9a62-11e9-8ecb-f5e4a7372c78.gif)
+
 - [x] **Large selection** Install any of the [180,000+ available packages](https://pypi.org/) from Scoop, like `python` and `git`
 - [x] **Try before you buy** Like `apt-get` and `yum`, no packages are actually installed until you've witnessed and confirmed what Scoop comes up with, including complex dependencies.
 - [x] **Skip existing**
