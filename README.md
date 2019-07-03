@@ -20,6 +20,7 @@ Install anything from [PyPI](https://pypi.org/) as a Rez package.
 - [x] **Zero-compilation** Every package is installed as a [wheel](https://pythonwheels.com/), which is how package authors distributes pre-compiled resources straight to your system.
 - [x] **Pip Scripts to Rez Executables** Some libraries ship with "scripts" or "entry_points" that provide a short-hand for an embedded Python function, such as `pip.exe`. These are typically refer to their parent Python process via absolute path which is a problem if you wanted to provide a different Python package alongside it using Rez. To work around this, Pipz makes this reference relative rather than absolute, such that you can say `rez env pip python-3.7` and use the provided Python with `pip` rather than whichever executable `pip.exe` happened to be built with.
 - [ ] [**Pip to Rez Version Conversion**](https://github.com/mottosso/rez-pipz/issues/1) The pip version syntax is similar to Rez but differ in subtle ways, such as not supporting the `!=` operator. Pipz safely converts these into Rez-qualified versions for your packages.
+- [ ] **Rez to Pip Version Conversion** Request packages from PyPI using Rez's requires-syntax, such as `pyblish_base-1.8.0` in place of `pyblish-base==1.8.0`. That way, no matter the package managed you use, such as [rez-scoopz](https://github.com/mottosso/rez-scoopz) the syntax remains consistent with Rez. Less to learn!
 
 > An avid user of `rez pip`? See [FAQ](#faq)
 
