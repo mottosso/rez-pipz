@@ -237,8 +237,7 @@ def main(argv=sys.argv):
         "--shim", default="binary", choices=["binary", "bat"],
         help="Windows-only, whether to generate binary or bat console_scripts")
 
-    opts, unknown = parser.parse_known_args(argv[1:])
-    extra_args = unknown[1:]  # First argument is a full path
+    opts, extra_args = parser.parse_known_args(argv[1:])
 
     if opts.verbose:
         log.setLevel(logging.DEBUG)
