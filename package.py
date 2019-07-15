@@ -1,5 +1,5 @@
 name = "pipz"
-version = "1.1.1"
+version = "1.1.2"
 requires = ["rez-2.29+", "python>=2,<4"]
 
 tools = [

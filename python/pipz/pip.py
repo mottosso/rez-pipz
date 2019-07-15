@@ -396,29 +396,27 @@ def write_console_script(root, executable, command, binary=True):
 
     try:
         module, func = command.split(":")
-    except ValueError as e:
+    except ValueError:
 
         if _log.level < logging.INFO:
             traceback.print_exc()
 
         return sys.stderr.write("Could not write %s\n" % fname)
 
-    if os.name == "nt":
-        if binary:
-            shutil.copyfile(_shim, fname + ".exe")
-            with open(fname + ".shim", "w") as f:
-                f.write(shim.format(**locals()))
-
-        else:
-            with open(fname + ".bat", "w") as f:
-                f.write(bat.format(**locals()))
+    if binary:
+        shutil.copyfile(_shim, fname + ".exe")
+        with open(fname + ".shim", "w") as f:
+            f.write(shim.format(**locals()))
 
     else:
-        with open(fname, "w") as f:
-            f.write(sh.format(**locals()))
+        with open(fname + ".bat", "w") as f:
+            f.write(bat.format(**locals()))
 
-        st = os.stat(fname)
-        os.chmod(fname, st.st_mode | stat.S_IEXEC)
+    with open(fname, "w") as f:
+        f.write(sh.format(**locals()))
+
+    st = os.stat(fname)
+    os.chmod(fname, st.st_mode | stat.S_IEXEC)
 
 
 def wheel_to_variants(wheel):
