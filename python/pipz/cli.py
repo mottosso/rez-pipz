@@ -209,10 +209,10 @@ def main(argv=sys.argv):
         "install", nargs="+",
         help="Install the package")
     parser.add_argument(
-        "-s", "--search", nargs="+",
+        "--search", nargs="+",
         help="Search for the package on PyPi")
     parser.add_argument(
-        "-r", "--release", action="store_true",
+        "--release", action="store_true",
         help="Install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
