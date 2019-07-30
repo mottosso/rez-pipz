@@ -12,7 +12,7 @@ Install anything from [PyPI](https://pypi.org/) as a Rez package.
 
 ![pipzdemo](https://user-images.githubusercontent.com/2152766/60382932-5086e100-9a62-11e9-8ecb-f5e4a7372c78.gif)
 
-- [x] **Large selection** Install any of the [180,000+ available packages](https://pypi.org/) from Scoop, like `python` and `git`
+- [x] **Large selection** Install any of the [180,000+ available packages](https://pypi.org/) from PyPI like Qt.py and Pyblish
 - [x] **Try before you buy** Like `apt-get` and `yum`, no packages are actually installed until you've witnessed and confirmed what Scoop comes up with, including complex dependencies.
 - [x] **Skip existing**
 - [x] **Dependencies included** Python libraries may reference other libraries, which reference additional libraries and so forth. Pipz handles all of that, whilst keeping track of which dependencies you already have in your package repository.
