@@ -104,7 +104,17 @@ def _install(opts, extra_args, tempdir):
     with stage("Discovering existing packages... "):
         new, exists = list(), list()
         for dist in distributions:
-            package = pip.convert(dist, variants=opts.variant)
+
+            try:
+                package = pip.convert(dist, variants=opts.variant)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                tell("\n")
+                tell("Oh no! You've encountered a bug in rez-pipz")
+                tell("Please report the above traceback in full to "
+                     "https://github.com/mottosso/rez-pipz")
+                exit(1)
 
             if pip.exists(package, packagesdir):
                 exists.append(package)
