@@ -1,5 +1,5 @@
 name = "pipz"
-version = "1.1.7"
+version = "1.1.8"
 requires = ["bleeding_rez-2.29+", "python>=2,<4"]
 
 tools = [

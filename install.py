@@ -64,14 +64,17 @@ for dirname in ("python", "bin"):
         os.path.join(build_dir, dirname)
     )
 
-version = "0.0"
+version = None
 
 with open(os.path.join(root, "package.py")) as f:
     for line in f:
         if not line.startswith("version ="):
             continue
-        version = line.split(" = ", 1)[-1]
+        exec(line)
         break
+
+
+assert version, "Couldn't figure out version from package.py"
 
 # Embed version into Python package
 with open(os.path.join(build_dir,
