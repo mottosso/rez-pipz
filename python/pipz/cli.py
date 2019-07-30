@@ -8,6 +8,7 @@ import argparse
 import contextlib
 
 from . import pip
+from .version import version
 from rez.config import config
 
 log = logging.getLogger("pipz")
@@ -82,6 +83,7 @@ def _install(opts, extra_args, tempdir):
 
     tell("Using python-%s" % python_version)
     tell("Using pip-%s" % pip_version)
+    tell("Using pipz-%s" % version)
 
     try:
         with stage("Reading package lists... "):

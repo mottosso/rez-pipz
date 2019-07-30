@@ -16,6 +16,7 @@ parser.add_argument("--overwrite", action="store_true")
 parser.add_argument("--pip", default="19.1.1")
 parser.add_argument("--wheel", default="0.33.4")
 parser.add_argument("--setuptools", default="41.0.1")
+parser.add_argument("--packaging", default="19.0")
 
 opts = parser.parse_args()
 
@@ -63,6 +64,22 @@ for dirname in ("python", "bin"):
         os.path.join(build_dir, dirname)
     )
 
+version = "0.0"
+
+with open(os.path.join(root, "package.py")) as f:
+    for line in f:
+        if not line.startswith("version ="):
+            continue
+        version = line.split(" = ", 1)[-1]
+        break
+
+# Embed version into Python package
+with open(os.path.join(build_dir,
+                       "python",
+                       "pipz",
+                       "__version__.py"), "w") as f:
+    f.write("version = \"%s\"" % version)
+
 tempdir = tempfile.mkdtemp()
 url = "https://bootstrap.pypa.io/get-pip.py"
 get_pip = os.path.join(tempdir, "get-pip.py")
@@ -76,6 +93,7 @@ try:
         "pip==%s" % opts.pip,
         "wheel==%s" % opts.wheel,
         "setuptools==%s" % opts.setuptools,
+        "packaging==%s" % opts.packaging,
         "--target", python_dir
     ]) == 0
 

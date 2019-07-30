@@ -1,5 +1,5 @@
 name = "pipz"
-version = "1.1.4"
+version = "1.1.6"
 requires = ["bleeding_rez-2.29+", "python>=2,<4"]
 
 tools = [
@@ -13,6 +13,7 @@ build_command = " ".join([
     "--pip=19.1.1",
     "--wheel=0.33.4",
     "--setuptools=41.0.1",
+    "--packaging=19.0",
 ])
 
 

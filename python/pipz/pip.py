@@ -10,7 +10,6 @@ Algorithm:
 
 from rez.vendor.distlib import DistlibException
 from rez.vendor.distlib.database import DistributionPath
-from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.utils.logging_ import print_warning
 from rez.package_maker__ import PackageMaker
@@ -20,7 +19,10 @@ from rez.utils.platform_ import platform_
 from rez.utils.filesystem import retain_cwd
 from rez.backport.lru_cache import lru_cache
 
+from packaging.requirements import Requirement
+
 import os
+import re
 import sys
 import stat
 import errno
@@ -57,6 +59,7 @@ _pipzdir = os.path.dirname(__file__)
 _pythondir = os.path.dirname(_pipzdir)
 _rootdir = os.path.dirname(_pythondir)
 _shim = os.path.join(_rootdir, "bin", "shim.exe")
+_log = logging.getLogger("pipz")
 
 
 def install(names,
@@ -401,7 +404,7 @@ def write_console_script(root, executable, command, binary=True):
         if _log.level < logging.INFO:
             traceback.print_exc()
 
-        return sys.stderr.write("Could not write %s\n" % fname)
+        return _log.warning("Could not write %s" % fname)
 
     if binary:
         shutil.copyfile(_shim, fname + ".exe")
@@ -651,68 +654,69 @@ def _rez_name(pip_name):
     return pip_name.replace("-", "_")
 
 
-def _get_dependencies(requirement):
-    requirements = ([requirement] if isinstance(requirement, _basestring)
-                    else requirement["requires"])
-
-    result = []
-    for package in requirements:
-        if "(" in package:
-            try:
-                name, version = parse_name_and_version(package)
-                version = version.replace("==", "")
-                name = _rez_name(name)
-            except DistlibException:
-                n, vs = package.split(' (')
-                vs = vs[:-1]
-                versions = []
-                for v in vs.split(','):
-                    package = "%s (%s)" % (n, v)
-                    name, version = parse_name_and_version(package)
-                    version = version.replace("==", "")
-                    versions.append(version)
-                version = "".join(versions)
-                name = _rez_name(name)
-
-            result.append("-".join([name, version]))
-        else:
-            name = _rez_name(package)
-            result.append(name)
-
-    return result
-
-
 def _pip_to_rez_requirements(distribution):
     """Convert pip-requirements --> rez-requirements"""
 
+    def pip_to_rez(requirement):
+
+        if requirement.marker:
+            # Unsupported
+            _log.warning(
+                "Unsupported conditional requirement: '%s' -> '%s'"
+                % (distribution, requirement)
+            )
+            return
+
+        # https://www.python.org/dev/peps/pep-0440/#version-specifiers
+        lut = {
+            "~=": "-",    # Compatible release clause
+            "==": "==",   # Version matching clause
+            "<=": "<=",   # Inclusive ordered comparison clause
+            ">=": ">=",
+            "<": "<",     # Exclusive ordered comparison clause
+            ">": ">",
+            "===": "==",  # Arbitrary equality clause
+            "!=": "",     # Version exclusion clause
+        }
+
+        name, specifier = requirement.name, requirement.specifier
+
+        for spec in str(specifier).split(","):
+
+            if not spec:
+                # Naked requirement, e.g. six
+                yield name
+                continue
+
+            # Specified is e.g. ==1.0, ~=5.6.4b0 or !=5
+            spec, version = re.split(r"(\W+)", spec, 1)[1:]
+
+            # pip -> rez specifier
+            try:
+                spec = lut[spec]
+            except KeyError:
+                raise KeyError(
+                    "Unexpected Python package version, %s%s\n"
+                    "This is a bug, please file a report to "
+                    "https://github.com/mottosso/rez-pipz/issues"
+                    % (name, specifier)
+                )
+
+            if not spec:
+                # Unsupported by Rez, it does however support
+                # package exclusion e.g. !six==1.11
+                name = "!" + name
+
+            # Requirements are given in PyPI syntax
+            name = _rez_name(name)
+
+            rez_requirement = "{name}{spec}{version}".format(**locals())
+
+            yield rez_requirement
+
     requirements = []
-    for req in (distribution.metadata.run_requires or []):
-        if "environment" in req:
-            if interpret(req["environment"]):
-                requirements += _get_dependencies(req)
-
-        elif "extra" in req:
-            # TODO: Handle optional requirements
-            # e.g. requests[security]
-            pass
-
-        else:
-            requirements += _get_dependencies(req)
+    for pip_req in map(Requirement, (distribution.run_requires or [])):
+        for rez_req in pip_to_rez(pip_req):
+            requirements += [rez_req]
 
     return requirements
-
-
-# Copyright 2013-2016 Allan Johns.
-#
-# This library is free software: you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation, either
-# version 3 of the License, or (at your option) any later version.
-#
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
