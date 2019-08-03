@@ -8,7 +8,6 @@ Algorithm:
 
 """
 
-from rez.vendor.distlib import DistlibException
 from rez.vendor.distlib.database import DistributionPath
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.utils.logging_ import print_warning
@@ -509,8 +508,7 @@ def wheel_to_variants(wheel):
         k + "-" + variants[k]
 
         # Order is important
-        for k in ("platform",
-                  "os",
+        for k in ("os",
                   "python")
 
         if variants[k] is not None
@@ -685,7 +683,7 @@ def _pip_to_rez_requirements(distribution):
 
             if not spec:
                 # Naked requirement, e.g. six
-                yield name
+                yield _rez_name(name)
                 continue
 
             # Specified is e.g. ==1.0, ~=5.6.4b0 or !=5
