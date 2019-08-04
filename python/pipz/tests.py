@@ -8,11 +8,12 @@ import tempfile
 import subprocess
 
 from rez.tests.util import TempdirMixin, TestBase
-from rez import pip
 from rez.resolved_context import ResolvedContext
 from rez.package_maker__ import make_package
 from rez.packages_ import iter_packages
 from rez.util import which
+
+from . import pip
 
 
 def rmtree(path):
@@ -44,10 +45,10 @@ class TestWheel(TestBase, TempdirMixin):
         version = int(version[0])
 
         with make_package("python", cls.tempdir) as maker:
-            PATH = os.path.dirname(python)
+            PATH = os.path.dirname(python).replace("\\", "/")
             maker.version = str(version)
             maker.commands = "\n".join([
-                "env.PATH.prepend('%s')" % PATH
+                "env.PATH.prepend(r'%s')" % PATH
             ])
 
         cls.context = ResolvedContext(
@@ -82,14 +83,14 @@ class TestWheel(TestBase, TempdirMixin):
         installed = self._install("%s==%s" % (package, version))
         assert installed, "Something should have been installed"
 
-        names = [pkg.name for pkg in installed]
+        names = [pkg.name.lower() for pkg in installed]
         versions = {
-            package.name: str(package.version)
+            package.name.lower(): str(package.version)
             for package in installed
         }
 
-        self.assertIn(package, names)
-        self.assertEqual(versions[package], version)
+        self.assertIn(package.lower(), names)
+        self.assertEqual(versions[package.lower()], version)
 
     def test_wheel_to_variants1(self):
         """Test wheel_to_variants with pure-Python pip"""
@@ -115,7 +116,6 @@ Tag: cp36-cp36m-win_amd64
 
         variants = pip.wheel_to_variants(WHEEL)
         self.assertEqual(variants, [
-            "platform-%s" % pip.platform_name(),
             "os-%s" % pip.os_name(),
             "python-%s" % pip.python_version(),
         ])
@@ -157,7 +157,7 @@ I am b'a'd
 
     def test_purepython_2(self):
         """Install a pure-Python package only compatible with Python 2"""
-        self._test_install("futures", "3.2.0")
+        self._test_install("futures", "3.1.0")
 
     def test_compiled(self):
         """Install a compiled Python package"""
@@ -168,7 +168,7 @@ I am b'a'd
         installed = self._install("mkdocs==1.0.4")
         assert installed, "Something should have been installed"
 
-        names = [pkg.name for pkg in installed]
+        names = [pkg.name.lower() for pkg in installed]
         package = {package.name: package for package in installed}["mkdocs"]
         versions = {
             package.name: str(package.version)
@@ -257,3 +257,16 @@ I am b'a'd
         """Install PySide2"""
         if self.python_version != 3:
             self.skipTest("PySide2 is not available on PyPI for Python 2")
+
+        self._test_install("PySide2", "5.12.0")
+
+    def test_pyside(self):
+        """Install PySide"""
+        if self.python_version != 2:
+            self.skipTest("PySide is not available on PyPI for Python 3")
+
+        self._test_install("PySide", "5.12.0")
+
+    def test_twine(self):
+        """Lots of complex metadata, conditional and not-requirements"""
+        self._test_install("twine", "1.13.0")
