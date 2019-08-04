@@ -110,10 +110,9 @@ def _install(opts, extra_args, tempdir):
             except Exception:
                 import traceback
                 traceback.print_exc()
-                tell("\n")
                 tell("Oh no! You've encountered a bug in rez-pipz")
                 tell("Please report the above traceback in full to "
-                     "https://github.com/mottosso/rez-pipz")
+                     "https://github.com/mottosso/rez-pipz/issues")
                 exit(1)
 
             if pip.exists(package, packagesdir):
