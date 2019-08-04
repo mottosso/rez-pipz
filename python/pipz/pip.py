@@ -195,7 +195,7 @@ def exists(package, path):
     return variant.install(path, dry_run=True) is not None
 
 
-def convert(distribution, variants=None):
+def convert(distribution, variants=None, dumb=False):
     """Make a Rez package out of `distribution`
 
     Arguments:
@@ -233,9 +233,27 @@ def convert(distribution, variants=None):
     package = maker.get_package()
 
     # Store reference for deployment
+    distribution.dumb = dumb
     _package_to_distribution[package] = distribution
 
     return package
+
+
+def _dumb_files_from_distribution(dist):
+    """RECORD can split multiple PyPI packages into multiple Rez packages
+
+    This cannot.s
+
+    """
+
+    for base, dirs, files in os.walk(dist.location):
+        for fname in files:
+            import pdb
+            pdb.set_trace()
+            abspath = os.path.join(base, fname)
+            relpath = os.path.relpath(abspath, dist.location)
+
+            yield relpath
 
 
 def _files_from_distribution(dist):
@@ -276,8 +294,14 @@ def deploy(package, path, shim="binary"):
 
         # Store files from distribution for deployment
         files = list()
-        for relpath in _files_from_distribution(distribution):
-            files += [(distribution.location, relpath)]
+
+        if distribution.dumb:
+            for relpath in _dumb_files_from_distribution(distribution):
+                files += [(distribution.location, relpath)]
+
+        else:
+            for relpath in _files_from_distribution(distribution):
+                files += [(distribution.location, relpath)]
 
         for source_root, relpath in files:
             src = os.path.join(source_root, relpath)
@@ -353,6 +377,10 @@ def find_console_scripts(distribution):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+
+    except Exception:
+        # Any other issue, let it go
+        return {}
 
     scripts = parser._sections.get("console_scripts", {})
 

@@ -114,5 +114,5 @@ jobs:
         displayName: "rez bind"
 
       - powershell: |
-          nose2 --start-dir $(pwd)\python -vvv
+          nose2 --start-dir=python -vvv
         displayName: "test"

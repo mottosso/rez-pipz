@@ -106,7 +106,9 @@ def _install(opts, extra_args, tempdir):
         for dist in distributions:
 
             try:
-                package = pip.convert(dist, variants=opts.variant)
+                package = pip.convert(dist,
+                                      variants=opts.variant,
+                                      dumb=opts.dumb)
             except Exception:
                 import traceback
                 traceback.print_exc()
@@ -247,6 +249,14 @@ def main(argv=sys.argv):
     parser.add_argument(
         "--shim", default="binary", choices=["binary", "bat"],
         help="Windows-only, whether to generate binary or bat console_scripts")
+    parser.add_argument("--dumb", action="store_true", help=(
+        "Do not consider a wheel's RECORD, copy everything. This can "
+        "help with heavily customised or hacked wheels, such as "
+        "PyQt5-5.12 and py-spy that don't adhere to the wheel convention. "
+        "However it also means any dependencies of a PyPI package is also "
+        "included in the result Rez package, so you may want to use it "
+        "with pip's --no-deps argument."
+    ))
 
     opts, extra_args = parser.parse_known_args(argv[1:])
 

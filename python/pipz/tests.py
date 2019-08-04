@@ -260,13 +260,6 @@ I am b'a'd
 
         self._test_install("PySide2", "5.12.0")
 
-    def test_pyside(self):
-        """Install PySide"""
-        if self.python_version != 2:
-            self.skipTest("PySide is not available on PyPI for Python 3")
-
-        self._test_install("PySide", "5.12.0")
-
     def test_twine(self):
         """Lots of complex metadata, conditional and not-requirements"""
         self._test_install("twine", "1.13.0")
