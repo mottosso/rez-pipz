@@ -1,5 +1,7 @@
 ![image](https://user-images.githubusercontent.com/2152766/59871191-d8982700-938e-11e9-88fe-33249483480d.png)
 
+[![Build Status](https://mottosso.visualstudio.com/rez-pipz/_apis/build/status/mottosso.rez-pipz?branchName=master)](https://mottosso.visualstudio.com/rez-pipz/_build/latest?definitionId=6&branchName=master)
+
 Install anything from [PyPI](https://pypi.org/) as a Rez package.
 
 **See also**
@@ -19,7 +21,10 @@ Install anything from [PyPI](https://pypi.org/) as a Rez package.
 - [x] **Minimal variants** Only make variants for packages that need it, e.g. universal libraries have zero variants, whereas compiled binaries require `arch`, `os` and `platform`. This applies to individual packages regardless of whether they are indirect requirements to a requested package.
 - [x] **Zero-compilation** Every package is installed as a [wheel](https://pythonwheels.com/), which is how package authors distributes pre-compiled resources straight to your system.
 - [x] **Pip Scripts to Rez Executables** Some libraries ship with "scripts" or "entry_points" that provide a short-hand for an embedded Python function, such as `pip.exe`. These are typically refer to their parent Python process via absolute path which is a problem if you wanted to provide a different Python package alongside it using Rez. To work around this, Pipz makes this reference relative rather than absolute, such that you can say `rez env pip python-3.7` and use the provided Python with `pip` rather than whichever executable `pip.exe` happened to be built with.
-- [ ] [**Pip to Rez Version Conversion**](https://github.com/mottosso/rez-pipz/issues/1) The pip version syntax is similar to Rez but differ in subtle ways, such as not supporting the `!=` operator. Pipz safely converts these into Rez-qualified versions for your packages.
+- [x] [**Pip to Rez Version Conversion**](https://github.com/mottosso/rez-pipz/issues/1) The pip version syntax is similar to Rez but differ in subtle ways, such as not supporting the `!=` operator. Pipz safely converts these into Rez-qualified versions for your packages.
+  - Markers a.k.a. Conditional requirements, e.g. `"PySide; python_version<'3'"`
+  - Complex metadata, e.g. `requires` and `python_requires`, including PyQt5-5.12+
+  - Not-requirements, e.g. `urllib3!=3.11`
 - [ ] **Rez to Pip Version Conversion** Request packages from PyPI using Rez's requires-syntax, such as `pyblish_base-1.8.0` in place of `pyblish-base==1.8.0`. That way, no matter the package managed you use, such as [rez-scoopz](https://github.com/mottosso/rez-scoopz) the syntax remains consistent with Rez. Less to learn!
 
 > An avid user of `rez pip`? See [FAQ](#faq)
