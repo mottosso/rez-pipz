@@ -8,8 +8,6 @@ Algorithm:
 
 """
 
-from rez.vendor.distlib.database import DistributionPath
-from rez.vendor.distlib.util import parse_name_and_version
 from rez.utils.logging_ import print_warning
 from rez.package_maker__ import PackageMaker
 from rez.config import config
@@ -18,7 +16,7 @@ from rez.utils.platform_ import platform_
 from rez.utils.filesystem import retain_cwd
 from rez.backport.lru_cache import lru_cache
 
-from packaging.requirements import Requirement
+from pkg_resources import find_distributions
 
 import os
 import re
@@ -172,14 +170,11 @@ def download(names, tempdir=None, extra_args=None):
 
     call(cmd)
 
-    distribution_path = DistributionPath([tempdir])
-    distributions = list(distribution_path.get_distributions())
-
     return sorted(
-        distributions,
+        find_distributions(tempdir),
 
         # Upper-case characters typically come first
-        key=lambda d: d.name.lower()
+        key=lambda d: d.key
     )
 
 
@@ -211,27 +206,21 @@ def convert(distribution, variants=None):
 
     """
 
-    name, _ = parse_name_and_version(distribution.name_and_version)
-    name = _rez_name(distribution.name[:len(name)])
-
     # determine variant requirements
     variants_ = variants or []
 
     if not variants_:
-        wheen_fname = os.path.join(distribution.path, "WHEEL")
-        with open(wheen_fname) as f:
+        WHEEL = os.path.join(distribution.egg_info, "WHEEL")
+        with open(WHEEL) as f:
             variants_.extend(wheel_to_variants(f.read()))
 
     requirements = _pip_to_rez_requirements(distribution)
 
-    maker = PackageMaker(name)
+    maker = PackageMaker(_rez_name(distribution.project_name))
     maker.version = distribution.version
 
     if requirements:
         maker.requires = requirements
-
-    if distribution.metadata.summary:
-        maker.description = distribution.metadata.summary
 
     if variants_:
         maker.variants = [variants_]
@@ -249,6 +238,30 @@ def convert(distribution, variants=None):
     return package
 
 
+def _files_from_distribution(dist):
+    """(Almost) Every file of a distribution is documented in the RECORD file
+
+    https://www.python.org/dev/peps/pep-0427/#the-dist-info-directory
+
+    """
+
+    exclude = ["__pycache__", r"\.pyc$"]
+
+    RECORD = os.path.join(dist.egg_info, "RECORD")
+    with open(RECORD) as f:
+        for line in f:
+            relpath = line.split(",", 1)[0]
+            relpath = relpath.replace("\\", "/")
+            parts = relpath.split("/")
+
+            if any(re.findall(pat, part)
+                   for pat in exclude
+                   for part in parts):
+                continue
+
+            yield relpath
+
+
 def deploy(package, path, shim="binary"):
     """Deploy `distribution` as `package` at `path`
 
@@ -263,9 +276,8 @@ def deploy(package, path, shim="binary"):
 
         # Store files from distribution for deployment
         files = list()
-        for relpath, md5, size in distribution.list_installed_files():
-            root_ = os.path.dirname(distribution.path)
-            files += [(root_, relpath)]
+        for relpath in _files_from_distribution(distribution):
+            files += [(distribution.location, relpath)]
 
         for source_root, relpath in files:
             src = os.path.join(source_root, relpath)
@@ -329,7 +341,7 @@ def find_console_scripts(distribution):
     #     https://packaging.python.org/specifications/
     #     entry-points/#file-format
     fname = os.path.join(
-        distribution.path,
+        distribution.egg_info,
         "entry_points.txt"
     )
 
@@ -700,20 +712,24 @@ def _pip_to_rez_requirements(distribution):
                     % (name, specifier)
                 )
 
+            prefix = ""
             if not spec:
                 # Unsupported by Rez, it does however support
                 # package exclusion e.g. !six==1.11
-                name = "!" + name
+                prefix = "!"
+                spec = "=="
 
             # Requirements are given in PyPI syntax
             name = _rez_name(name)
 
-            rez_requirement = "{name}{spec}{version}".format(**locals())
+            rez_requirement = (
+                "{prefix}{name}{spec}{version}".format(**locals())
+            )
 
             yield rez_requirement
 
     requirements = []
-    for pip_req in map(Requirement, (distribution.run_requires or [])):
+    for pip_req in distribution.requires() or []:
         for rez_req in pip_to_rez(pip_req):
             requirements += [rez_req]
 
