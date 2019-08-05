@@ -6,7 +6,23 @@ import argparse
 import subprocess
 
 try:
-    from urllib.request import urlretrieve
+
+    # An unfortunate hack..
+    # https://stackoverflow.com/questions/52074590/
+    # urllib-request-urlopen-ssl-certificate-verify-
+    # failed-error-on-windows-vista/52074591#52074591
+    from urllib.request import urlopen
+
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    def urlretrieve(url, fname):
+        with urlopen(url, context=ctx) as u:
+            with open(fname, 'wb') as f:
+                f.write(u.read())
+
 except ImportError:
     # Support for Python 2.7
     from urllib import urlretrieve
