@@ -248,8 +248,6 @@ def _dumb_files_from_distribution(dist):
 
     for base, dirs, files in os.walk(dist.location):
         for fname in files:
-            import pdb
-            pdb.set_trace()
             abspath = os.path.join(base, fname)
             relpath = os.path.relpath(abspath, dist.location)
 
