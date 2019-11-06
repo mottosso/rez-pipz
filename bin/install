@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-python -u -m pipz --install $*
+python -u -m pipz $*
