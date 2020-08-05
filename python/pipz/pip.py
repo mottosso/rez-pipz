@@ -10,6 +10,7 @@ Algorithm:
 
 from rez.utils.logging_ import print_warning
 from rez.package_maker__ import PackageMaker
+from rez.developer_package import DeveloperPackage
 from rez.config import config
 from rez.vendor.six import six
 from rez.utils.platform_ import platform_
@@ -216,7 +217,8 @@ def convert(distribution, variants=None, dumb=False):
 
     requirements = _pip_to_rez_requirements(distribution)
 
-    maker = PackageMaker(_rez_name(distribution.project_name))
+    maker = PackageMaker(_rez_name(distribution.project_name),
+                         package_cls=DeveloperPackage)
     maker.version = distribution.version
 
     if requirements:
@@ -231,6 +233,14 @@ def convert(distribution, variants=None, dumb=False):
     ])
 
     package = maker.get_package()
+    data = maker._get_data()
+    data["pipz"] = True  # breadcrumb for preprocessing
+
+    # preprocessing
+    result = package._get_preprocessed(data)
+
+    if result:
+        package, data = result
 
     # Store reference for deployment
     distribution.dumb = dumb

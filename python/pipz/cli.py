@@ -96,11 +96,6 @@ def _install(opts, extra_args, tempdir):
         tell(e)
         exit(1)
 
-    packagesdir = opts.prefix or (
-        config.release_packages_path if opts.release
-        else config.local_packages_path
-    )
-
     with stage("Discovering existing packages... "):
         new, exists = list(), list()
         for dist in distributions:
@@ -116,6 +111,14 @@ def _install(opts, extra_args, tempdir):
                 tell("Please report the above traceback in full to "
                      "https://github.com/mottosso/rez-pipz/issues")
                 exit(1)
+
+            release_packages_path = (package.config.release_packages_path
+                                     or config.release_packages_path)
+            local_packages_path = (package.config.local_packages_path
+                                   or config.local_packages_path)
+            packagesdir = opts.prefix or (
+                release_packages_path if opts.release else local_packages_path
+            )
 
             if pip.exists(package, packagesdir):
                 exists.append(package)
