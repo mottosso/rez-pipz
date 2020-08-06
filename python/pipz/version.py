@@ -1,6 +1,6 @@
 
 try:
-    from __version__ import version
+    from .__version__ import version
 
 except ImportError:
     import os

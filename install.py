@@ -29,7 +29,7 @@ except ImportError:
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--overwrite", action="store_true")
-parser.add_argument("--pip", default="19.1.1")
+parser.add_argument("--pip", default="20.2b1")
 parser.add_argument("--wheel", default="0.33.4")
 parser.add_argument("--setuptools", default="41.0.1")
 parser.add_argument("--packaging", default="19.0")
