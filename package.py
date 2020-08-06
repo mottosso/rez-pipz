@@ -10,7 +10,7 @@ tools = [
 # Upon a new release of pip, wheel or setuptools, this is what you edit
 build_command = " ".join([
     "python {root}/install.py ",
-    "--pip=19.1.1",
+    "--pip=20.2b1",
     "--wheel=0.33.4",
     "--setuptools=41.0.1",
     "--packaging=19.0",
