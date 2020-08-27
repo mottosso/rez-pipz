@@ -298,4 +298,6 @@ def main(argv=sys.argv):
             if success else "Failed"
         )
 
-    return success
+    returncode = 0 if success else 1
+
+    return returncode
