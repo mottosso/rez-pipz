@@ -87,7 +87,6 @@ def _install(opts, extra_args, tempdir):
 
     as_bundle = bool(opts.bundle and int(os.getenv("REZ_BUILD_ENV", "0")))
     rez_installing = bool(int(os.getenv("REZ_BUILD_INSTALL", "0")))
-    prefix = opts.prefix or ""
     packagesdir = ""
 
     try:
@@ -121,7 +120,7 @@ def _install(opts, extra_args, tempdir):
                                      or config.release_packages_path)
             local_packages_path = (package.config.local_packages_path
                                    or config.local_packages_path)
-            packagesdir = prefix or (
+            packagesdir = opts.prefix or (
                 release_packages_path if opts.release else local_packages_path
             )
 
@@ -131,6 +130,7 @@ def _install(opts, extra_args, tempdir):
                 new.append(package)
 
     if as_bundle:
+        prefix = opts.prefix or ""
         if rez_installing:
             packagesdir = os.environ["REZ_BUILD_INSTALL_PATH"] + prefix
         else:
