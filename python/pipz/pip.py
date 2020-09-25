@@ -288,16 +288,20 @@ def _files_from_distribution(dist):
             yield relpath
 
 
-def deploy(package, path, shim="binary"):
+def deploy(package, path, shim="binary", as_bundle=False):
     """Deploy `distribution` as `package` at `path`
 
     Arguments:
         package (rez.Package): Source package
         path (str): Path to install directory, e.g. "~/packages"
+        shim (str): Windows-only, whether to generate binary or bat scripts.
+            Valid input is "binary" or "bat", default is "binary".
+        as_bundle (bool): Deploy packages as one bundle. No variant will be
+            installed nor returned if this is `True`.
 
     """
 
-    def make_root(variant, destination_root):
+    def _deploy(destination_root):
         distribution = _package_to_distribution[package]
 
         # Store files from distribution for deployment
@@ -331,7 +335,7 @@ def deploy(package, path, shim="binary"):
         if not console_scripts:
             return
 
-        dst = os.path.join(root, "bin")
+        dst = os.path.join(destination_root, "bin")
         dst = os.path.normpath(dst)
 
         if not os.path.exists(dst):
@@ -340,11 +344,16 @@ def deploy(package, path, shim="binary"):
         for exe, command in console_scripts.items():
             write_console_script(dst, exe, command, shim == "binary")
 
-    variant = next(package.iter_variants())
-    variant_ = variant.install(path)
+    if as_bundle:
+        root = path
+        variant_ = None
+    else:
+        variant = next(package.iter_variants())
+        variant_ = variant.install(path)
 
-    root = variant_.root
-    if make_root and root:
+        root = variant_.root
+
+    if root:
         try:
             os.makedirs(root)
         except OSError as e:
@@ -356,7 +365,7 @@ def deploy(package, path, shim="binary"):
 
     with retain_cwd():
         os.chdir(root)
-        make_root(variant_, root)
+        _deploy(root)
 
     return variant_
 

@@ -85,6 +85,10 @@ def _install(opts, extra_args, tempdir):
     tell("Using pip-%s" % pip_version)
     tell("Using pipz-%s" % version)
 
+    as_bundle = bool(opts.bundle and int(os.getenv("REZ_BUILD_ENV", "0")))
+    rez_installing = bool(int(os.getenv("REZ_BUILD_INSTALL", "0")))
+    packagesdir = ""
+
     try:
         with stage("Reading package lists... "):
             distributions = pip.download(
@@ -120,10 +124,17 @@ def _install(opts, extra_args, tempdir):
                 release_packages_path if opts.release else local_packages_path
             )
 
-            if pip.exists(package, packagesdir):
+            if not as_bundle and pip.exists(package, packagesdir):
                 exists.append(package)
             else:
                 new.append(package)
+
+    if as_bundle:
+        prefix = opts.prefix or ""
+        if rez_installing:
+            packagesdir = os.environ["REZ_BUILD_INSTALL_PATH"] + prefix
+        else:
+            packagesdir = os.environ["REZ_BUILD_PATH"] + prefix
 
     if not new:
         for package in exists:
@@ -171,7 +182,7 @@ def _install(opts, extra_args, tempdir):
     tell("Packages will be installed to %s" % packagesdir)
     tell("After this operation, %.2f mb will be used." % size)
 
-    if not opts.yes and not opts.quiet:
+    if not as_bundle and (not opts.yes and not opts.quiet):
         if not ask("Do you want to continue? [Y/n] "):
             print("Cancelled")
             return
@@ -186,7 +197,8 @@ def _install(opts, extra_args, tempdir):
         with stage(msg, timing=False):
             pip.deploy(
                 package,
-                path=packagesdir
+                path=packagesdir,
+                as_bundle=as_bundle,
             )
 
     tell("%d installed, %d skipped" % (len(new), len(exists)))
@@ -225,6 +237,11 @@ def main(argv=sys.argv):
         "install", nargs="+",
         help="Install the package")
     parser.add_argument(
+        "-b", "--bundle", action="store_true",
+        help="If enabled, and environment variable $REZ_BUILD_ENV is set, "
+             "all packages and their requirements will be deployed into "
+             "current Rez package build/install path.")
+    parser.add_argument(
         "--search", nargs="+",
         help="Search for the package on PyPi")
     parser.add_argument(
@@ -233,10 +250,15 @@ def main(argv=sys.argv):
         "locally only")
     parser.add_argument(
         "-va", "--variant", action="append",
-        help="Install package as variant, may be called multiple times.")
+        help="Install package as variant, may be called multiple times. "
+             "This option will be ignored if --bundle enabled and environment "
+             "variable $REZ_BUILD_ENV is set.")
     parser.add_argument(
         "-p", "--prefix", type=str, metavar="PATH",
-        help="Install to a custom package repository path.")
+        help="Install to a custom package repository path. If --bundle "
+             "enabled and environment variable $REZ_BUILD_ENV is set, "
+             "the --prefix will become the suffix of current Rez package "
+             "build/install path.")
     parser.add_argument(
         "-y", "--yes", action="store_true",
         help="Pre-emptively answer the question to continue")
